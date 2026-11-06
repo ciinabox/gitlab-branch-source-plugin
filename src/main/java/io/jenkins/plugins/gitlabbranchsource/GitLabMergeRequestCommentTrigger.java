@@ -65,6 +65,14 @@ public class GitLabMergeRequestCommentTrigger extends AbstractGitLabJobTrigger<N
                                             && mergeRequestJobNamePattern
                                                     .matcher(job.getName())
                                                     .matches()) {
+                                        if (sourceContext.ignoreOwnComments() && isOwnComment(gitLabSCMSource)) {
+                                            LOGGER.log(
+                                                    Level.FINE,
+                                                    "Ignoring MR comment by the source's own user on {0}",
+                                                    job.getFullName());
+                                            jobFound = true;
+                                            break;
+                                        }
                                         String expectedCommentBody = sourceContext.getCommentBody();
                                         Pattern pattern = Pattern.compile(
                                                 expectedCommentBody, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
@@ -105,6 +113,13 @@ public class GitLabMergeRequestCommentTrigger extends AbstractGitLabJobTrigger<N
                 }
             }
         }
+    }
+
+    private boolean isOwnComment(GitLabSCMSource gitLabSCMSource) {
+        String author =
+                getPayload().getUser() == null ? null : getPayload().getUser().getUsername();
+        String own = gitLabSCMSource.getCredentialUsername();
+        return author != null && author.equals(own);
     }
 
     private boolean isTrustedMember(GitLabSCMSource gitLabSCMSource, boolean check) {

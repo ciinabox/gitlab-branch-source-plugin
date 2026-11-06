@@ -18,6 +18,11 @@ public class GitLabMergeRequestNoteData {
         this.variables.put(
                 "GITLAB_COMMENT_TRIGGER",
                 defaultString(noteEvent.getObjectAttributes().getNote()));
+        this.variables.put(
+                "GITLAB_COMMENT_AUTHOR",
+                noteEvent.getUser() == null
+                        ? ""
+                        : defaultString(noteEvent.getUser().getUsername()));
     }
 
     @Exported

@@ -42,6 +42,10 @@ public class GitLabWebHookListener implements WebHookListener {
         LOGGER.log(Level.FINE, mrEvent.toString());
         GitLabMergeRequestTrigger trigger = new GitLabMergeRequestTrigger(mrEvent, origin);
         fireTrigger(trigger, mrEvent.getProject().getWebUrl());
+        if (GitLabMergeRequestApprovalTrigger.isApprovalAction(
+                mrEvent.getObjectAttributes().getAction())) {
+            AbstractGitLabJobTrigger.fireNow(new GitLabMergeRequestApprovalTrigger(mrEvent));
+        }
     }
 
     @Override
