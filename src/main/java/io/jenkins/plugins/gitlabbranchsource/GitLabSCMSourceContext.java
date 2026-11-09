@@ -4,7 +4,9 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import hudson.model.TaskListener;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Set;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSource;
@@ -42,6 +44,13 @@ public class GitLabSCMSourceContext extends SCMSourceContext<GitLabSCMSourceCont
     private boolean logSuccess;
 
     private boolean mrCommentTriggerEnabled;
+
+    private boolean ignoreOwnComments;
+
+    private boolean mrApprovalTriggerEnabled;
+
+    @NonNull
+    private Set<String> mrApprovalTriggerActions = Collections.emptySet();
 
     private boolean onlyTrustedMembersCanTrigger;
 
@@ -143,6 +152,19 @@ public class GitLabSCMSourceContext extends SCMSourceContext<GitLabSCMSourceCont
 
     public final boolean mrCommentTriggerEnabled() {
         return mrCommentTriggerEnabled;
+    }
+
+    public final boolean ignoreOwnComments() {
+        return ignoreOwnComments;
+    }
+
+    public final boolean mrApprovalTriggerEnabled() {
+        return mrApprovalTriggerEnabled;
+    }
+
+    @NonNull
+    public final Set<String> mrApprovalTriggerActions() {
+        return mrApprovalTriggerActions;
     }
 
     public final boolean getOnlyTrustedMembersCanTrigger() {
@@ -281,6 +303,17 @@ public class GitLabSCMSourceContext extends SCMSourceContext<GitLabSCMSourceCont
 
     public final GitLabSCMSourceContext withMRCommentTriggerEnabled(boolean enabled) {
         this.mrCommentTriggerEnabled = enabled;
+        return this;
+    }
+
+    public final GitLabSCMSourceContext withIgnoreOwnComments(boolean enabled) {
+        this.ignoreOwnComments = enabled;
+        return this;
+    }
+
+    public final GitLabSCMSourceContext withMRApprovalTrigger(boolean enabled, @NonNull Set<String> actions) {
+        this.mrApprovalTriggerEnabled = enabled;
+        this.mrApprovalTriggerActions = Collections.unmodifiableSet(new HashSet<>(actions));
         return this;
     }
 

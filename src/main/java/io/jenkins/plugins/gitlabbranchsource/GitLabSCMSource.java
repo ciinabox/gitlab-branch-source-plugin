@@ -130,6 +130,7 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     private String sshRemote;
     private String httpRemote;
     private transient Project gitlabProject;
+    private transient volatile String credentialUsername;
     private Long projectId;
     private Long lastRetrieveTimestamp;
     private Integer indexingTimeout = 0;
@@ -215,6 +216,29 @@ public class GitLabSCMSource extends AbstractGitSCMSource {
     @DataBoundSetter
     public void setCredentialsId(String credentialsId) {
         this.credentialsId = credentialsId;
+        this.credentialUsername = null;
+    }
+
+    /**
+     * The username of the GitLab user this source's credentials act as, looked up once and cached.
+     *
+     * @return the username, or {@code null} if it can't be looked up
+     */
+    @Nullable
+    public String getCredentialUsername() {
+        String username = credentialUsername;
+        if (username == null) {
+            GitLabApi gitLabApi = createGitLabApi();
+            try {
+                username = gitLabApi.getUserApi().getCurrentUser().getUsername();
+                credentialUsername = username;
+            } catch (GitLabApiException | RuntimeException e) {
+                LOGGER.log(Level.WARNING, "Could not look up the user for credentials " + credentialsId, e);
+            } finally {
+                gitLabApi.close();
+            }
+        }
+        return username;
     }
 
     public Integer getIndexingTimeout() {

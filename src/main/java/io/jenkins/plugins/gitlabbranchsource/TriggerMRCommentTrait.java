@@ -8,6 +8,7 @@ import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * Allows a GitLab merge request comment to trigger an immediate build based on a comment string.
@@ -23,6 +24,11 @@ public class TriggerMRCommentTrait extends SCMSourceTrait {
      * Only comment trigger by trusted members only (members having access to project)
      */
     private final boolean onlyTrustedMembersCanTrigger;
+
+    /**
+     * Ignore comments written by the user this source's credentials act as (Jenkins' own comments).
+     */
+    private boolean ignoreOwnComments;
 
     /**
      * Constructor.
@@ -59,6 +65,20 @@ public class TriggerMRCommentTrait extends SCMSourceTrait {
     }
 
     /**
+     * Whether comments written by the user this source's credentials act as are ignored.
+     *
+     * @return true if Jenkins' own comments don't trigger builds
+     */
+    public boolean isIgnoreOwnComments() {
+        return ignoreOwnComments;
+    }
+
+    @DataBoundSetter
+    public void setIgnoreOwnComments(boolean ignoreOwnComments) {
+        this.ignoreOwnComments = ignoreOwnComments;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -67,6 +87,7 @@ public class TriggerMRCommentTrait extends SCMSourceTrait {
         ctx.withMRCommentTriggerEnabled(true);
         ctx.withOnlyTrustedMembersCanTrigger(getOnlyTrustedMembersCanTrigger());
         ctx.withCommentBody(getCommentBody());
+        ctx.withIgnoreOwnComments(isIgnoreOwnComments());
     }
 
     @Extension

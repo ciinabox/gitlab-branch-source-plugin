@@ -33,7 +33,7 @@ public class GitLabWebHookListener implements WebHookListener {
         // Add additional checks to process different noteable types
         if (noteEvent.getObjectAttributes().getNoteableType() == NoteableType.MERGE_REQUEST) {
             GitLabMergeRequestCommentTrigger trigger = new GitLabMergeRequestCommentTrigger(noteEvent);
-            AbstractGitLabJobTrigger.fireNow(trigger);
+            AbstractGitLabJobTrigger.fireLater(trigger);
         }
     }
 
@@ -42,6 +42,10 @@ public class GitLabWebHookListener implements WebHookListener {
         LOGGER.log(Level.FINE, mrEvent.toString());
         GitLabMergeRequestTrigger trigger = new GitLabMergeRequestTrigger(mrEvent, origin);
         fireTrigger(trigger, mrEvent.getProject().getWebUrl());
+        if (GitLabMergeRequestApprovalTrigger.isApprovalAction(
+                mrEvent.getObjectAttributes().getAction())) {
+            AbstractGitLabJobTrigger.fireLater(new GitLabMergeRequestApprovalTrigger(mrEvent));
+        }
     }
 
     @Override
