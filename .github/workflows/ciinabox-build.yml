@@ -1,4 +1,5 @@
-# ciinabox fork: builds and tests the plugin on pushes to the ciinabox branches and on pull requests.
+# ciinabox fork: builds and tests the plugin on pull requests and pushes to master (branches build
+# through their pull requests, so a commit isn't built twice).
 # Uses no secrets. Upstream's own workflows (cd.yml, jenkins-security-scan.yml) are left as they
 # are, so rebasing onto upstream doesn't conflict; this file and ciinabox-release.yml are ours.
 # Third-party actions are pinned to commit SHAs.
@@ -6,7 +7,7 @@ name: Build
 
 on:
   push:
-    branches: [master, 'feature/**', 'ciinabox/**']
+    branches: [master]
   pull_request:
   workflow_dispatch:
 
