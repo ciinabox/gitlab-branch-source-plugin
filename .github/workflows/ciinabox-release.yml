@@ -1,0 +1,67 @@
+# ciinabox fork: releases the plugin when a ciinabox version tag is pushed. It builds the plugin
+# at that version, attaches the .hpi to a GitHub release, and publishes it to the public base2
+# packages bucket, the same way as ciinabox/azure-devops-branch-source-plugin. That bucket is where
+# base2Services/jenkins-distribution installs ciinabox plugins from; gitlab-branch-source.version
+# holds the latest version.
+#
+# Tags are <upstream version the fork is based on>-ciinabox.<n>, e.g. 749.v63a_c68676751-ciinabox.1,
+# so a ciinabox build is never mistaken for an upstream release. Only those tags release:
+# upstream's tags, if they're ever pushed here, don't. Third-party actions are pinned to commit SHAs.
+name: Release
+
+on:
+  push:
+    tags: ['*-ciinabox.*']
+
+permissions:
+  contents: write   # the GitHub release
+  id-token: write   # AWS credentials through GitHub OIDC
+
+concurrency:
+  group: release-${{ github.ref }}
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      VERSION: ${{ github.ref_name }}
+      BUCKET_PATH: s3://base2.packages.ap-southeast-2.public/ciinabox/plugins
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ hashFiles('pom.xml') }}
+          restore-keys: maven-${{ runner.os }}-
+
+      # The runner image ships Temurin 21 and Maven, so nothing else is installed. The pom's
+      # version is ${changelist}, so -Dchangelist sets the release version.
+      - name: Build
+        run: |
+          export JAVA_HOME="$JAVA_HOME_21_X64"
+          mvn -B -ntp verify -Dchangelist="$VERSION"
+          unzip -p target/gitlab-branch-source.hpi META-INF/MANIFEST.MF | grep -x "Plugin-Version: $VERSION.*"
+
+      - name: GitHub release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          files: target/gitlab-branch-source.hpi
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_PUBLISH_ROLE_ARN }}
+          aws-region: ap-southeast-2
+
+      - name: Publish to S3
+        run: |
+          aws s3 cp target/gitlab-branch-source.hpi \
+            "$BUCKET_PATH/$VERSION/gitlab-branch-source.hpi" --acl public-read
+          printf '%s' "$VERSION" > version.txt
+          aws s3 cp version.txt "$BUCKET_PATH/gitlab-branch-source.version" \
+            --acl public-read --content-type text/plain

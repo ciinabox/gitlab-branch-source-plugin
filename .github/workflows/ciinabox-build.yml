@@ -1,0 +1,40 @@
+# ciinabox fork: builds and tests the plugin on pull requests and pushes to master (branches build
+# through their pull requests, so a commit isn't built twice).
+# Uses no secrets. Upstream's own workflows (cd.yml, jenkins-security-scan.yml) are left as they
+# are, so rebasing onto upstream doesn't conflict; this file and ciinabox-release.yml are ours.
+# Third-party actions are pinned to commit SHAs.
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ hashFiles('pom.xml') }}
+          restore-keys: maven-${{ runner.os }}-
+
+      # The runner image ships Temurin 21 and Maven, so nothing else is installed.
+      - name: Verify
+        run: |
+          export JAVA_HOME="$JAVA_HOME_21_X64"
+          mvn -B -ntp verify
